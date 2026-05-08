@@ -1,0 +1,768 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<title>LoanAssist AI</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family: Arial;
+    background: linear-gradient(135deg,#0d1117,#0b3d91,#ff007f);
+    background-size: 400% 400%;
+    animation: gradientMove 12s ease infinite;
+    color:white;
+    overflow:hidden;
+}
+
+/* Animated Background */
+@keyframes gradientMove{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+}
+
+/* MAIN LAYOUT */
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:260px;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    padding:20px;
+    overflow-y:auto;
+    border-right:1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-title{
+    font-size:24px;
+    font-weight:bold;
+    margin-bottom:20px;
+}
+
+.new-chat{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#1f6feb;
+    color:white;
+    cursor:pointer;
+    margin-bottom:20px;
+}
+
+.new-chat:hover{
+    background:#388bfd;
+}
+
+.chat-history{
+    padding:12px;
+    margin-bottom:10px;
+    background:rgba(255,255,255,0.08);
+    border-radius:8px;
+    cursor:pointer;
+    transition:0.3s;
+    word-wrap:break-word;
+}
+
+.chat-history:hover{
+    background:rgba(255,255,255,0.18);
+}
+
+/* MAIN CHAT AREA */
+.main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:20px;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.title{
+    font-size:30px;
+    font-weight:bold;
+}
+
+.clear-btn{
+    background:#dc3545;
+}
+
+.clear-btn:hover{
+    background:#ff4d5e;
+}
+
+.chatbox{
+    flex:1;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    border-radius:12px;
+    padding:15px;
+    overflow-y:auto;
+}
+
+/* MESSAGES */
+.message{
+    padding:12px;
+    margin:10px 0;
+    border-radius:10px;
+    max-width:80%;
+    white-space:pre-wrap;
+    line-height:1.5;
+    position:relative;
+}
+
+.user{
+    background:#238636;
+    margin-left:auto;
+}
+
+.ai{
+    background:#1f6feb;
+}
+
+/* FEEDBACK */
+.feedback{
+    margin-top:8px;
+    font-size:18px;
+}
+
+.feedback span{
+    cursor:pointer;
+    margin-right:10px;
+}
+
+/* INPUT AREA */
+.input-area{
+    margin-top:15px;
+    display:flex;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:6px;
+    outline:none;
+}
+
+button{
+    margin-left:10px;
+    padding:12px 20px;
+    border:none;
+    border-radius:6px;
+    background:#ff007f;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#ff4da6;
+}
+
+/* TYPING DOTS */
+.typing{
+    display:flex;
+    gap:5px;
+}
+
+.typing span{
+    width:8px;
+    height:8px;
+    background:white;
+    border-radius:50%;
+    animation:bounce 1.2s infinite;
+}
+
+.typing span:nth-child(2){
+    animation-delay:0.2s;
+}
+
+.typing span:nth-child(3){
+    animation-delay:0.4s;
+}
+
+@keyframes bounce{
+    0%,80%,100%{
+        transform:scale(0.7);
+        opacity:0.5;
+    }
+
+    40%{
+        transform:scale(1);
+        opacity:1;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <div class="sidebar-title">
+            💬 Chats
+        </div>
+
+        <button
+            class="new-chat"
+            onclick="newChat()"
+        >
+            + New Chat
+        </button>
+
+        <div id="chatList"></div>
+
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="header">
+
+            <div class="title">
+                🤖 LoanAssist AI
+            </div>
+
+            <button
+                class="clear-btn"
+                onclick="clearCurrentChat()"
+            >
+                Clear Chat
+            </button>
+
+        </div>
+
+        <div id="messages" class="chatbox"></div>
+
+        <div class="input-area">
+
+            <input
+                id="question"
+                placeholder="Ask about loan policies..."
+            />
+
+            <button
+                id="sendBtn"
+                onclick="send()"
+            >
+                Send
+            </button>
+
+            <button
+                id="stopBtn"
+                onclick="stopResponse()"
+                style="display:none;background:#dc3545;"
+            >
+                Stop
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const API_URL =
+"https://9ypgue0fw9.execute-api.us-east-1.amazonaws.com/chat";
+
+/* LOAD CHATS */
+let chats =
+JSON.parse(
+localStorage.getItem("loanassist_chats")
+) || {};
+
+let currentChatId = null;
+
+let currentInterval = null;
+
+let stopGeneration = false;
+
+/* SAVE */
+function saveChats(){
+
+    localStorage.setItem(
+        "loanassist_chats",
+        JSON.stringify(chats)
+    );
+
+}
+
+/* INITIAL */
+window.onload=function(){
+
+    const keys =
+    Object.keys(chats);
+
+    if(keys.length > 0){
+
+        keys.forEach(chatId=>{
+
+            addSidebarChat(
+                chatId,
+                chats[chatId].title || "New Chat"
+            );
+
+        });
+
+        loadChat(keys[0]);
+
+    }
+
+    else{
+
+        createNewChat();
+
+    }
+
+}
+
+/* GENERATE TITLE */
+function generateTitle(question){
+
+    let title = question
+    .toLowerCase()
+    .replace("what is","")
+    .replace("tell me about","")
+    .replace("explain","")
+    .replace("can you","")
+    .replace("please","")
+    .trim();
+
+    title =
+    title.charAt(0).toUpperCase() +
+    title.slice(1);
+
+    if(title.length > 28){
+
+        title =
+        title.substring(0,28) + "...";
+
+    }
+
+    return title + " Info";
+
+}
+
+/* CREATE CHAT */
+function createNewChat(){
+
+    const chatId =
+    "chat-" + Date.now();
+
+    currentChatId = chatId;
+
+    chats[chatId] = {
+        title:"New Chat",
+        messages:""
+    };
+
+    saveChats();
+
+    addSidebarChat(chatId,"New Chat");
+
+    loadChat(chatId);
+
+}
+
+/* ADD SIDEBAR */
+function addSidebarChat(chatId,title){
+
+    const chatItem =
+    document.createElement("div");
+
+    chatItem.className =
+    "chat-history";
+
+    chatItem.innerText =
+    title;
+
+    chatItem.onclick = function(){
+
+        loadChat(chatId);
+
+    };
+
+    chatItem.id = chatId;
+
+    document
+    .getElementById("chatList")
+    .appendChild(chatItem);
+
+}
+
+/* LOAD CHAT */
+function loadChat(chatId){
+
+    currentChatId = chatId;
+
+    const messages =
+    document.getElementById("messages");
+
+    messages.innerHTML =
+    chats[chatId].messages;
+
+    if(messages.innerHTML.trim()===""){
+
+        addMessage(
+        "👋 Hello! I am LoanAssist AI.\n\nAsk me anything about loans, policies, or documents 🙂",
+        "ai"
+        );
+
+    }
+
+}
+
+/* NEW CHAT */
+function newChat(){
+
+    chats[currentChatId].messages =
+    document.getElementById("messages").innerHTML;
+
+    saveChats();
+
+    createNewChat();
+
+}
+
+/* CLEAR CHAT */
+function clearCurrentChat(){
+
+    const messages =
+    document.getElementById("messages");
+
+    messages.innerHTML = "";
+
+    chats[currentChatId].messages = "";
+
+    saveChats();
+
+}
+
+/* STOP RESPONSE */
+function stopResponse(){
+
+    stopGeneration = true;
+
+    clearInterval(currentInterval);
+
+    document.getElementById(
+        "stopBtn"
+    ).style.display = "none";
+
+    document.getElementById(
+        "sendBtn"
+    ).style.display = "block";
+
+}
+
+/* ENTER KEY */
+document
+.getElementById("question")
+.addEventListener("keypress",function(e){
+
+    if(e.key==="Enter"){
+        send();
+    }
+
+});
+
+/* SEND */
+async function send(){
+
+    const input =
+    document.getElementById("question");
+
+    const question =
+    input.value;
+
+    if(!question) return;
+
+    stopGeneration = false;
+
+    document.getElementById(
+        "sendBtn"
+    ).style.display = "none";
+
+    document.getElementById(
+        "stopBtn"
+    ).style.display = "block";
+
+    /* TITLE */
+    const chatItem =
+    document.getElementById(currentChatId);
+
+    if(chatItem &&
+       chatItem.innerText === "New Chat"){
+
+        const smartTitle =
+        generateTitle(question);
+
+        chatItem.innerText =
+        smartTitle;
+
+        chats[currentChatId].title =
+        smartTitle;
+
+        saveChats();
+
+    }
+
+    addMessage(question,"user");
+
+    input.value="";
+
+    /* TYPING ANIMATION */
+    const loading =
+    addTypingAnimation();
+
+    try{
+
+        const response =
+        await fetch(API_URL,{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                question:question
+            })
+
+        });
+
+        const data =
+        await response.json();
+
+        let responseText =
+        data.answer;
+
+        /* SOURCES */
+        if(data.sources &&
+           data.sources.length > 0){
+
+            responseText +=
+            "\n\n📚 Sources:\n";
+
+            const uniqueFiles =
+            [...new Set(
+
+                data.sources.map(
+                    src =>
+                    src.source
+                    .split("/")
+                    .pop()
+                )
+
+            )];
+
+            uniqueFiles.forEach(
+            (file,index)=>{
+
+                responseText +=
+                `\n${index+1}. ${file}`;
+
+            });
+
+        }
+
+        /* STREAMING EFFECT */
+        loading.innerHTML = "";
+
+        typeText(
+            loading,
+            responseText
+        );
+
+    }
+
+    catch(error){
+
+        loading.innerText =
+        "⚠️ Something went wrong.";
+
+    }
+
+}
+
+/* TYPE TEXT */
+function typeText(element,text){
+
+    let i = 0;
+
+    currentInterval =
+    setInterval(()=>{
+
+        if(stopGeneration){
+
+            clearInterval(currentInterval);
+
+            addFeedbackButtons(element);
+
+            chats[currentChatId].messages =
+            document.getElementById("messages").innerHTML;
+
+            saveChats();
+
+            return;
+
+        }
+
+        element.textContent +=
+        text.charAt(i);
+
+        i++;
+
+        const messages =
+        document.getElementById("messages");
+
+        messages.scrollTop =
+        messages.scrollHeight;
+
+        if(i >= text.length){
+
+            clearInterval(currentInterval);
+
+            addFeedbackButtons(element);
+
+            chats[currentChatId].messages =
+            document.getElementById("messages").innerHTML;
+
+            saveChats();
+
+            document.getElementById(
+                "stopBtn"
+            ).style.display = "none";
+
+            document.getElementById(
+                "sendBtn"
+            ).style.display = "block";
+
+        }
+
+    },15);
+
+}
+
+/* FEEDBACK BUTTONS */
+function addFeedbackButtons(messageDiv){
+
+    const feedback =
+    document.createElement("div");
+
+    feedback.className =
+    "feedback";
+
+    const like =
+    document.createElement("span");
+
+    like.innerText = "👍";
+
+    like.onclick = function(){
+
+        like.innerText = "✅ Liked";
+
+        dislike.remove();
+
+    };
+
+    const dislike =
+    document.createElement("span");
+
+    dislike.innerText = "👎";
+
+    dislike.onclick = function(){
+
+        dislike.innerText = "❌ Disliked";
+
+        like.remove();
+
+    };
+
+    feedback.appendChild(like);
+
+    feedback.appendChild(dislike);
+
+    messageDiv.appendChild(feedback);
+
+}
+
+/* TYPING ANIMATION */
+function addTypingAnimation(){
+
+    const div =
+    document.createElement("div");
+
+    div.className =
+    "message ai";
+
+    div.innerHTML =
+    `
+    <div class="typing">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    `;
+
+    const messages =
+    document.getElementById("messages");
+
+    messages.appendChild(div);
+
+    messages.scrollTop =
+    messages.scrollHeight;
+
+    return div;
+
+}
+
+/* ADD MESSAGE */
+function addMessage(text,type){
+
+    const div =
+    document.createElement("div");
+
+    div.className =
+    "message "+type;
+
+    div.innerText =
+    text;
+
+    const messages =
+    document.getElementById("messages");
+
+    messages.appendChild(div);
+
+    messages.scrollTop =
+    messages.scrollHeight;
+
+    return div;
+}
+
+</script>
+
+</body>
+</html>
