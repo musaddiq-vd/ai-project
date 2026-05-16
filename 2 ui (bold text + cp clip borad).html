@@ -186,6 +186,16 @@ body{
     color: #ffffff;
 }
 
+/* Metadata Timestamp Design Formatting */
+.message-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 6px;
+    text-align: right;
+    display: block;
+    user-select: none;
+}
+
 @keyframes fadeIn{
     from{
         opacity:0;
@@ -364,6 +374,16 @@ let stopGeneration = false;
 
 function saveChats(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+}
+
+// 12-Hour formatted current time calculator
+function getCurrentTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; 
+    return `${hours}:${minutes} ${ampm}`;
 }
 
 window.onload=function(){
@@ -559,7 +579,6 @@ function typeText(element,text){
         }
 
         currentHTML += text.charAt(i);
-        // Live parsing lagayi hai taaki typing ke waqt hi breaks aur markdown render ho sakein
         element.innerHTML = marked.parse(currentHTML);
         i++;
 
@@ -577,6 +596,12 @@ function finishMessage(element, rawText){
     element.innerHTML = marked.parse(rawText); 
     
     addFeedbackButtons(element, rawText);
+
+    // AI bubble block end hone par local timestamp add kiya
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "message-time";
+    timeSpan.innerText = getCurrentTime();
+    element.appendChild(timeSpan);
 
     chats[currentChatId].messages = document.getElementById("messages").innerHTML;
     saveChats();
@@ -650,6 +675,12 @@ function addMessage(text,type){
     } else {
         div.innerHTML = marked.parse(text);
     }
+
+    // Historical blocks aur standard initial/user messages ke niche dynamic timestamp injection
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "message-time";
+    timeSpan.innerText = getCurrentTime();
+    div.appendChild(timeSpan);
 
     const msgs = document.getElementById("messages");
     msgs.appendChild(div);
