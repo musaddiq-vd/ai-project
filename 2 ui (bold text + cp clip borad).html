@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoanAssist AI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#0d1117,#0b3d91,#ff007f);
+    background-size:400% 400%;
+    animation:gradientMove 12s ease infinite;
+    color:white;
+    overflow:hidden;
+}
+
+@keyframes gradientMove{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+}
+
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:260px;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(12px);
+    padding:20px;
+    overflow-y:auto;
+    border-right:1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-title{
+    font-size:24px;
+    font-weight:bold;
+    margin-bottom:20px;
+}
+
+.new-chat{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#1f6feb;
+    color:white;
+    cursor:pointer;
+    margin-bottom:20px;
+    transition:0.3s;
+}
+
+.new-chat:hover{
+    background:#388bfd;
+}
+
+.chat-history-wrapper{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:rgba(255,255,255,0.08);
+    border-radius:8px;
+    margin-bottom:10px;
+    padding-right:8px;
+    transition:0.3s;
+}
+
+.chat-history-wrapper:hover{
+    background:rgba(255,255,255,0.18);
+}
+
+.active-chat{
+    border:1px solid rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.18);
+}
+
+.chat-history{
+    flex:1;
+    padding:12px;
+    cursor:pointer;
+    word-wrap:break-word;
+    font-size:14px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.delete-chat-btn{
+    background:transparent;
+    border:none;
+    color:rgba(255,255,255,0.5);
+    cursor:pointer;
+    font-size:16px;
+    padding:5px;
+    margin-left:5px;
+    border-radius:4px;
+    transition:0.3s;
+}
+
+.delete-chat-btn:hover{
+    color:#ff4d5e;
+    background:rgba(255,0,0,0.1);
+}
+
+/* MAIN */
+.main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:20px;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.title{
+    font-size:30px;
+    font-weight:bold;
+}
+
+.clear-btn{
+    background:#dc3545;
+}
+
+.clear-btn:hover{
+    background:#ff4d5e;
+}
+
+.chatbox{
+    flex:1;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(10px);
+    border-radius:12px;
+    padding:15px;
+    overflow-y:auto;
+    scroll-behavior:smooth;
+}
+
+.message{
+    padding:12px 16px;
+    margin:8px 0;
+    border-radius:10px;
+    max-width:80%;
+    line-height:1.5;
+    position:relative;
+    animation:fadeIn 0.2s ease;
+}
+
+/* Clean Spacing for Rendered Markdown Elements */
+.message p {
+    margin: 0 0 8px 0; 
+}
+
+.message p:last-child {
+    margin-bottom: 0; 
+}
+
+.message ul, .message ol {
+    margin: 6px 0;
+    padding-left: 20px; 
+}
+
+.message li {
+    margin-bottom: 4px; 
+    padding: 0;
+}
+
+.message strong {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(8px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0px);
+    }
+}
+
+.user{
+    background:#238636;
+    margin-left:auto;
+    white-space: pre-wrap;
+}
+
+.ai{
+    background:#1f6feb;
+}
+
+.feedback{
+    margin-top:12px;
+    padding-top:4px;
+    font-size:15px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.feedback span{
+    cursor:pointer;
+    user-select: none;
+    transition: 0.2s;
+}
+
+.feedback span:hover {
+    opacity: 0.8;
+}
+
+.input-area{
+    margin-top:15px;
+    display:flex;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:6px;
+    outline:none;
+    font-size:15px;
+}
+
+button{
+    margin-left:10px;
+    padding:12px 20px;
+    border:none;
+    border-radius:6px;
+    background:#ff007f;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:#ff4da6;
+}
+
+button:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+}
+
+.typing{
+    display:flex;
+    gap:5px;
+}
+
+.typing span{
+    width:8px;
+    height:8px;
+    background:white;
+    border-radius:50%;
+    animation:bounce 1.2s infinite;
+}
+
+.typing span:nth-child(2){
+    animation-delay:0.2s;
+}
+
+.typing span:nth-child(3){
+    animation-delay:0.4s;
+}
+
+@keyframes bounce{
+    0%,80%,100%{
+        transform:scale(0.7);
+        opacity:0.5;
+    }
+    40%{
+        transform:scale(1);
+        opacity:1;
+    }
+}
+
+/* MOBILE */
+@media(max-width:768px){
+    .container{
+        flex-direction:column;
+    }
+    .sidebar{
+        width:100%;
+        height:220px;
+    }
+    .main{
+        padding:10px;
+    }
+    .message{
+        max-width:95%;
+    }
+    .title{
+        font-size:22px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="sidebar">
+        <div class="sidebar-title">💬 Chats</div>
+        <button class="new-chat" onclick="newChat()">+ New Chat</button>
+        <div id="chatList"></div>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            <div class="title">🤖 LoanAssist AI</div>
+            <button class="clear-btn" onclick="clearCurrentChat()">Clear Chat</button>
+        </div>
+
+        <div id="messages" class="chatbox"></div>
+
+        <div class="input-area">
+            <input
+                id="question"
+                maxlength="1000"
+                placeholder="Ask about loan policies..."
+                autocomplete="off"
+            />
+            <button id="sendBtn" onclick="send()">Send</button>
+            <button id="stopBtn" onclick="stopResponse()" style="display:none;background:#dc3545;">Stop</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const API_URL = "https://9ypgue0fw9.execute-api.us-east-1.amazonaws.com/chat";
+const STORAGE_KEY = "loanassist_chats";
+
+marked.setOptions({
+    breaks: true,
+    gfm: true
+});
+
+let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+let currentChatId = null;
+let currentInterval = null;
+let stopGeneration = false;
+
+function saveChats(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+}
+
+window.onload=function(){
+    refreshSidebar();
+    const keys = Object.keys(chats);
+    if(keys.length > 0){
+        loadChat(keys[0]);
+    } else {
+        createNewChat();
+    }
+}
+
+function refreshSidebar(){
+    const chatList = document.getElementById("chatList");
+    chatList.innerHTML = "";
+    Object.keys(chats).reverse().forEach(chatId=>{
+        addSidebarChat(chatId, chats[chatId].title || "New Chat");
+    });
+}
+
+function generateTitle(question){
+    let title = question.toLowerCase().replace("what is","").replace("tell me about","").replace("explain","").replace("can you","").replace("please","").trim();
+    title = title.charAt(0).toUpperCase() + title.slice(1);
+    if(title.length > 20){
+        title = title.substring(0,20) + "...";
+    }
+    return title || "Loan Info";
+}
+
+function createNewChat(){
+    const chatId = "chat-" + Date.now();
+    currentChatId = chatId;
+    chats[chatId] = { title:"New Chat", messages:"" };
+    saveChats();
+    refreshSidebar();
+    loadChat(chatId);
+}
+
+function addSidebarChat(chatId,title){
+    const wrapper = document.createElement("div");
+    wrapper.className = "chat-history-wrapper";
+    if(chatId === currentChatId){
+        wrapper.classList.add("active-chat");
+    }
+
+    const chatItem = document.createElement("div");
+    chatItem.className = "chat-history";
+    chatItem.innerText = title;
+    chatItem.onclick = () => { loadChat(chatId); };
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-chat-btn";
+    deleteBtn.innerHTML = "🗑️";
+    deleteBtn.title = "Delete Chat";
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteChat(chatId);
+    };
+
+    wrapper.appendChild(chatItem);
+    wrapper.appendChild(deleteBtn);
+    document.getElementById("chatList").appendChild(wrapper);
+}
+
+function deleteChat(chatId){
+    if(confirm("Delete this chat?")){
+        delete chats[chatId];
+        saveChats();
+        refreshSidebar();
+        if(currentChatId === chatId){
+            const remainingKeys = Object.keys(chats);
+            if(remainingKeys.length > 0){
+                loadChat(remainingKeys[0]);
+            } else {
+                createNewChat();
+            }
+        }
+    }
+}
+
+function loadChat(chatId){
+    currentChatId = chatId;
+    refreshSidebar();
+    const messages = document.getElementById("messages");
+    messages.innerHTML = chats[chatId].messages;
+
+    if(messages.innerHTML.trim()===""){
+        addMessage("👋 Hello! I am LoanAssist AI.\n\nAsk me anything about loans, policies, or documents 🙂", "ai");
+    }
+}
+
+function newChat(){
+    if(currentChatId && chats[currentChatId]){
+        chats[currentChatId].messages = document.getElementById("messages").innerHTML;
+    }
+    saveChats();
+    createNewChat();
+}
+
+function clearCurrentChat(){
+    if(!confirm("Clear current chat?")){
+        return;
+    }
+    document.getElementById("messages").innerHTML = "";
+    chats[currentChatId].messages = "";
+    saveChats();
+}
+
+function stopResponse(){
+    stopGeneration = true;
+    clearInterval(currentInterval);
+    document.getElementById("stopBtn").style.display = "none";
+    document.getElementById("sendBtn").style.display = "block";
+}
+
+document.getElementById("question").addEventListener("keypress",function(e){
+    if(e.key==="Enter"){
+        send();
+    }
+});
+
+async function send(){
+    const input = document.getElementById("question");
+    const question = input.value.trim();
+    if(!question) return;
+
+    stopGeneration = false;
+    input.disabled = true;
+
+    document.getElementById("sendBtn").style.display = "none";
+    document.getElementById("stopBtn").style.display = "block";
+
+    if(chats[currentChatId].title === "New Chat"){
+        const smartTitle = generateTitle(question);
+        chats[currentChatId].title = smartTitle;
+        saveChats();
+        refreshSidebar();
+    }
+
+    addMessage(question,"user");
+    input.value="";
+
+    const loading = addTypingAnimation();
+
+    try{
+        const response = await fetch(API_URL,{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                question:question
+            })
+        });
+
+        if(!response.ok){
+            throw new Error("API Error");
+        }
+
+        const data = await response.json();
+        let responseText = data.answer || "No response received.";
+
+        if(data.sources && data.sources.length > 0){
+            responseText += "\n\n📚 Sources:\n";
+            const uniqueFiles = [...new Set(data.sources.map(src => src.source.split("/").pop()))];
+            uniqueFiles.forEach((file,index)=>{
+                responseText += `\n${index+1}. ${file}`;
+            });
+        }
+
+        loading.innerHTML = "";
+        typeText(loading, responseText);
+    }
+    catch(error){
+        loading.innerText = "⚠️ Failed to connect. Please try again.";
+        finishMessage(loading, "");
+    }
+    finally{
+        input.disabled = false;
+        input.focus();
+    }
+}
+
+function typeText(element,text){
+    let i = 0;
+    let currentHTML = "";
+    
+    currentInterval = setInterval(()=>{
+        if(stopGeneration){
+            clearInterval(currentInterval);
+            finishMessage(element, text);
+            return;
+        }
+
+        currentHTML += text.charAt(i);
+        // Live parsing lagayi hai taaki typing ke waqt hi breaks aur markdown render ho sakein
+        element.innerHTML = marked.parse(currentHTML);
+        i++;
+
+        const msgs = document.getElementById("messages");
+        msgs.scrollTop = msgs.scrollHeight;
+
+        if(i >= text.length){
+            clearInterval(currentInterval);
+            finishMessage(element, text);
+        }
+    }, 5); 
+}
+
+function finishMessage(element, rawText){
+    element.innerHTML = marked.parse(rawText); 
+    
+    addFeedbackButtons(element, rawText);
+
+    chats[currentChatId].messages = document.getElementById("messages").innerHTML;
+    saveChats();
+
+    document.getElementById("stopBtn").style.display = "none";
+    document.getElementById("sendBtn").style.display = "block";
+}
+
+function addFeedbackButtons(messageDiv, rawText){
+    const feedback = document.createElement("div");
+    feedback.className = "feedback";
+
+    const like = document.createElement("span");
+    like.innerText = "👍";
+
+    const dislike = document.createElement("span");
+    dislike.innerText = "👎";
+
+    like.onclick = () => {
+        if(like.innerText === "👍"){
+            like.innerText = "✅ Liked";
+            dislike.innerText = "👎"; 
+        } else {
+            like.innerText = "👍"; 
+        }
+    };
+
+    dislike.onclick = () => {
+        if(dislike.innerText === "👎"){
+            dislike.innerText = "❌ Disliked";
+            like.innerText = "👍"; 
+        } else {
+            dislike.innerText = "👎";
+        }
+    };
+
+    const copyBtn = document.createElement("span");
+    copyBtn.innerText = "📋 Copy";
+    copyBtn.style.fontSize = "14px";
+    copyBtn.style.color = "rgba(255,255,255,0.6)";
+    
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(rawText).then(() => {
+            copyBtn.innerText = "✅ Copied!";
+            setTimeout(() => { copyBtn.innerText = "📋 Copy"; }, 2000);
+        }).catch(() => {
+            copyBtn.innerText = "❌ Failed";
+        });
+    };
+
+    feedback.appendChild(like);
+    feedback.appendChild(dislike);
+    feedback.appendChild(copyBtn);
+    messageDiv.appendChild(feedback);
+}
+
+function addTypingAnimation(){
+    const div = document.createElement("div");
+    div.className = "message ai";
+    div.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+    document.getElementById("messages").appendChild(div);
+    return div;
+}
+
+function addMessage(text,type){
+    const div = document.createElement("div");
+    div.className = "message "+type;
+
+    if(type === "user") {
+        div.innerText = text;
+    } else {
+        div.innerHTML = marked.parse(text);
+    }
+
+    const msgs = document.getElementById("messages");
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+}
+
+</script>
+</body>
+</html>
